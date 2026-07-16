@@ -2,6 +2,7 @@ import { useState } from "react";
 import SetupScreen from "./screens/SetupScreen";
 import CreateLinesScreen from "./screens/CreateLinesScreen";
 import { SCREENS } from "./constants/screens";
+import BettingScreen from "./screens/BettingScreen";
 import "./App.css";
 
 function App() {
@@ -10,6 +11,16 @@ function App() {
   const [startingTokens, setStartingTokens] = useState(100);
   const [error, setError] = useState("");
   const [screen, setScreen] = useState(SCREENS.SETUP);
+  const [lines, setLines] = useState([]);
+  const [linesPerPlayer, setLinesPerPlayer] = useState(1);
+  
+  function handleLinesPerPlayerChange(event) {
+    setLinesPerPlayer(Number(event.target.value));
+  }
+
+  function continueToBetting() {
+    setScreen(SCREENS.BETTING);
+  }
 
   function addPlayer() {
     const cleanedName = playerName.trim();
@@ -62,6 +73,10 @@ function App() {
     }
   }
 
+  function addLine(newLine) {
+    setLines((currentLines) => [...currentLines, newLine]);
+  }
+
   function handleStartingTokensChange(event) {
     const newStartingTokens = Number(event.target.value);
 
@@ -99,8 +114,21 @@ function App() {
     return (
       <CreateLinesScreen
         players={players}
-        startingTokens={startingTokens}
+        lines={lines}
+        linesPerPlayer={linesPerPlayer}
+        addLine={addLine}
         returnToSetup={returnToSetup}
+        continueToBetting={continueToBetting}
+      />
+    );
+  }
+
+  if (screen === SCREENS.BETTING) {
+    return (
+      <BettingScreen
+        players={players}
+        lines={lines}
+        returnToLines={() => setScreen(SCREENS.CREATE_LINES)}
       />
     );
   }
@@ -118,6 +146,8 @@ function App() {
       handleStartingTokensChange={handleStartingTokensChange}
       continueGame={continueGame}
       clearError={clearError}
+      linesPerPlayer={linesPerPlayer}
+      handleLinesPerPlayerChange={handleLinesPerPlayerChange}
     />
   );
 }

@@ -5,14 +5,17 @@ function SetupScreen({
   setPlayerName,
   players,
   startingTokens,
+  linesPerPlayer,
   error,
   addPlayer,
   removePlayer,
   handleKeyDown,
   handleStartingTokensChange,
+  handleLinesPerPlayerChange,
   continueGame,
   clearError,
 }) {
+
   return (
     <main>
       <h1>Night Out Betting</h1>
@@ -41,6 +44,20 @@ function SetupScreen({
           <option value={150}>150 tokens</option>
           <option value={200}>200 tokens</option>
           <option value={500}>500 tokens</option>
+        </select>
+
+
+        <label className="input-label" htmlFor="lines-per-player">
+            Lines per player
+        </label>
+
+        <select
+            id="lines-per-player"
+            value={linesPerPlayer}
+            onChange={handleLinesPerPlayerChange}
+        >
+            <option value={1}>1 line per player</option>
+            <option value={2}>2 lines per player</option>
         </select>
 
         <label className="input-label" htmlFor="player-name">
