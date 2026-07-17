@@ -5,7 +5,9 @@ function BettingScreen({
   lines,
   submitPlayerBets,
   returnToLines,
+  continueToResolve,
 }) {
+
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [draftBets, setDraftBets] = useState({});
@@ -174,9 +176,17 @@ function BettingScreen({
           </div>
 
           <p className="next-stage-message">
-            Milestone 4 will let the host resolve each line and automatically
-            distribute the losing tokens between the winners.
+            Keep this screen with the host. When the night is over, resolve each
+            prediction and calculate the final leaderboard.
           </p>
+
+          <button
+            type="button"
+            className="continue-to-resolve-button"
+            onClick={continueToResolve}
+          >
+            Resolve bets
+          </button>
         </section>
       </main>
     );

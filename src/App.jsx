@@ -3,6 +3,7 @@ import SetupScreen from "./screens/SetupScreen";
 import CreateLinesScreen from "./screens/CreateLinesScreen";
 import { SCREENS } from "./constants/screens";
 import BettingScreen from "./screens/BettingScreen";
+import ResolveScreen from "./screens/ResolveScreen";
 import "./App.css";
 
 function App() {
@@ -169,6 +170,142 @@ function App() {
     return true;
   }
 
+  function resolveLine(lineId, winningOptionId) {
+    const line = lines.find((currentLine) => currentLine.id === lineId);
+
+    if (!line || line.settled) {
+      return false;
+    }
+
+    const validWinningOption = line.options.some(
+      (option) => option.id === winningOptionId,
+    );
+
+    if (!validWinningOption) {
+      return false;
+    }
+
+    const winningBets = line.bets.filter(
+      (bet) => bet.optionId === winningOptionId,
+    );
+
+    const losingBets = line.bets.filter(
+      (bet) => bet.optionId !== winningOptionId,
+    );
+
+    const winningStake = winningBets.reduce(
+      (total, bet) => total + bet.stake,
+      0,
+    );
+
+    const losingPool = losingBets.reduce(
+      (total, bet) => total + bet.stake,
+      0,
+    );
+
+    const payouts = [];
+
+    /*
+      If either side has no money staked, there is no opposing pool.
+      Refund every bet on the line.
+    */
+    if (winningStake === 0 || losingPool === 0) {
+      line.bets.forEach((bet) => {
+        payouts.push({
+          playerId: bet.playerId,
+          amount: bet.stake,
+        });
+      });
+    } else {
+      /*
+        First calculate each winner's exact proportional share
+        of the losing pool.
+      */
+      const calculatedShares = winningBets.map((bet) => {
+        const exactShare =
+          losingPool * (bet.stake / winningStake);
+
+        const roundedDownShare = Math.floor(exactShare);
+
+        return {
+          bet,
+          roundedDownShare,
+          remainder: exactShare - roundedDownShare,
+        };
+      });
+
+      const distributedTokens = calculatedShares.reduce(
+        (total, result) => total + result.roundedDownShare,
+        0,
+      );
+
+      let remainingTokens = losingPool - distributedTokens;
+
+      /*
+        Give remaining whole tokens to the players with the
+        largest fractional remainders.
+      */
+      calculatedShares.sort((resultA, resultB) => {
+        if (resultB.remainder !== resultA.remainder) {
+          return resultB.remainder - resultA.remainder;
+        }
+
+        if (resultB.bet.stake !== resultA.bet.stake) {
+          return resultB.bet.stake - resultA.bet.stake;
+        }
+
+        return resultA.bet.id.localeCompare(resultB.bet.id);
+      });
+
+      calculatedShares.forEach((result) => {
+        let profit = result.roundedDownShare;
+
+        if (remainingTokens > 0) {
+          profit += 1;
+          remainingTokens -= 1;
+        }
+
+        payouts.push({
+          playerId: result.bet.playerId,
+
+          // Return original stake plus profit
+          amount: result.bet.stake + profit,
+        });
+      });
+    }
+
+    const payoutByPlayer = payouts.reduce((totals, payout) => {
+      totals[payout.playerId] =
+        (totals[payout.playerId] ?? 0) + payout.amount;
+
+      return totals;
+    }, {});
+
+    setPlayers((currentPlayers) =>
+      currentPlayers.map((player) => ({
+        ...player,
+        balance:
+          player.balance + (payoutByPlayer[player.id] ?? 0),
+      })),
+    );
+
+    setLines((currentLines) =>
+      currentLines.map((currentLine) =>
+        currentLine.id === lineId
+          ? {
+              ...currentLine,
+              winningOptionId,
+              settled: true,
+              settledAt: Date.now(),
+              payouts,
+            }
+          : currentLine,
+      ),
+    );
+
+    return true;
+  }
+
   if (screen === SCREENS.CREATE_LINES) {
     return (
       <CreateLinesScreen
@@ -189,6 +326,18 @@ function App() {
         lines={lines}
         submitPlayerBets={submitPlayerBets}
         returnToLines={() => setScreen(SCREENS.CREATE_LINES)}
+        continueToResolve={() => setScreen(SCREENS.RESOLVE)}
+      />
+    );
+  }
+
+  if (screen === SCREENS.RESOLVE) {
+    return (
+      <ResolveScreen
+        players={players}
+        lines={lines}
+        resolveLine={resolveLine}
+        returnToBetting={() => setScreen(SCREENS.BETTING)}
       />
     );
   }
