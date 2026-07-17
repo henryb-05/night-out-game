@@ -110,6 +110,65 @@ function App() {
     }
   }
 
+  function submitPlayerBets(playerId, submittedBets) {
+    const player = players.find((currentPlayer) => currentPlayer.id === playerId);
+
+    if (!player) {
+      return false;
+    }
+
+    const totalStake = submittedBets.reduce(
+      (total, bet) => total + bet.stake,
+      0,
+    );
+
+    if (totalStake > player.balance) {
+      return false;
+    }
+
+    const savedBets = submittedBets.map((bet) => ({
+      id: crypto.randomUUID(),
+      playerId,
+      lineId: bet.lineId,
+      optionId: bet.optionId,
+      stake: bet.stake,
+      createdAt: Date.now(),
+    }));
+
+    setPlayers((currentPlayers) =>
+      currentPlayers.map((currentPlayer) => {
+        if (currentPlayer.id !== playerId) {
+          return currentPlayer;
+        }
+
+        return {
+          ...currentPlayer,
+          balance: currentPlayer.balance - totalStake,
+          bets: [...currentPlayer.bets, ...savedBets],
+        };
+      }),
+    );
+
+    setLines((currentLines) =>
+      currentLines.map((line) => {
+        const betsForThisLine = savedBets.filter(
+          (bet) => bet.lineId === line.id,
+        );
+
+        if (betsForThisLine.length === 0) {
+          return line;
+        }
+
+        return {
+          ...line,
+          bets: [...line.bets, ...betsForThisLine],
+        };
+      }),
+    );
+
+    return true;
+  }
+
   if (screen === SCREENS.CREATE_LINES) {
     return (
       <CreateLinesScreen
@@ -128,6 +187,7 @@ function App() {
       <BettingScreen
         players={players}
         lines={lines}
+        submitPlayerBets={submitPlayerBets}
         returnToLines={() => setScreen(SCREENS.CREATE_LINES)}
       />
     );
